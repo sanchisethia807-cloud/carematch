@@ -11,10 +11,10 @@
   --tint-clay: #f7ede7;
 
   /* accents */
-  --accent: #1f5f57;
-  --accent-soft: #d8e7e3;
-  --clay: #b1613f;
-  --clay-soft: #f0ded4;
+  --accent: #5b7786;
+  --accent-soft: #dde5ea;
+  --clay: #8fa8b5;
+  --clay-soft: #e5edf1;
 
   /* emergency — used nowhere else */
   --alert: #a8261c;
@@ -36,7 +36,6 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-/* each stage gets its own wash so moving forward feels like progress */
 .stage { min-height: 100vh; background: var(--paper); }
 .stage-teal { background: var(--tint-teal); }
 .stage-sand { background: var(--tint-sand); }
@@ -149,7 +148,7 @@ button:focus-visible {
   cursor: pointer;
 }
 
-.btn:hover { background: #17463f; border-color: #17463f; }
+.btn:hover { background: #47606d; border-color: #47606d; }
 .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 .btn:disabled:hover { background: var(--accent); border-color: var(--accent); }
 
@@ -209,7 +208,7 @@ button:focus-visible {
 .card:hover { border-color: var(--accent); }
 .card:hover .card-name { color: var(--accent); }
 
-.card-best { border-color: var(--clay); border-left: 4px solid var(--clay); }
+.card-best { border-color: var(--accent); border-left: 4px solid var(--accent); }
 
 .card-name {
   font-family: var(--serif);
@@ -229,7 +228,7 @@ button:focus-visible {
   padding: 3px 9px;
   border-radius: 4px;
   background: var(--clay-soft);
-  color: var(--clay);
+  color: var(--accent);
   margin-bottom: 9px;
 }
 
@@ -282,7 +281,45 @@ button:focus-visible {
 .section { margin-top: 30px; }
 .section p { margin: 0; }
 
-/* --- visit prep sheet: one page --- */
+/* --- results table --- */
+
+.results {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.results-row {
+  display: grid;
+  grid-template-columns: 1fr 70px 70px;
+  gap: 8px;
+  padding: 13px 16px;
+  border-bottom: 1px solid var(--rule);
+  font-size: 15px;
+}
+
+.results-row:last-child { border-bottom: none; }
+
+.results-head {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+  background: var(--tint-sand);
+}
+
+.results-best { background: var(--accent-soft); font-weight: 500; }
+
+.results-note {
+  display: block;
+  font-size: 12px;
+  color: var(--ink-soft);
+  font-weight: 400;
+}
+
+/* --- visit prep sheet --- */
 
 .sheet {
   background: #fff;

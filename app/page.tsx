@@ -102,7 +102,7 @@ export default function Page() {
             <div>
               <h3>See who to visit, and how soon</h3>
               <p>
-                Top suggested specialists, ranked, with what each one treats.
+                Three suggested specialists, ranked, with what each one treats.
               </p>
             </div>
           </div>
@@ -118,11 +118,213 @@ export default function Page() {
           </div>
         </div>
 
-        <button className="btn" onClick={() => setScreen("start")}>
-          Find my specialist
-        </button>
+        <div className="btn-row">
+          <button className="btn" onClick={() => setScreen("start")}>
+            Find my specialist
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setScreen("about")}
+          >
+            How this was built
+          </button>
+        </div>
 
         <Footnotes />
+      </main>
+    );
+  }
+
+  // ------------------------------------------------------------------ about
+  if (screen === "about") {
+    return (
+      <main className="wrap">
+        <button className="back" onClick={() => setScreen("landing")}>
+          ← Back
+        </button>
+
+        <h1>How this was built</h1>
+        <p className="lede">
+          CareMatch began as a classifier trained on clinical notes. It scored
+          44.8%. Finding out why led to everything else.
+        </p>
+
+        <div className="section">
+          <p className="label">The baseline</p>
+          <p>
+            TF-IDF + logistic regression and Naive Bayes were trained on the
+            MTSamples dataset of roughly 5,000 medical transcriptions. Top-1
+            accuracy reached 44.8% across 12 classes. That number sounds
+            mediocre rather than broken — until you check what guessing would
+            score. &ldquo;Surgery&rdquo; alone made up 29.7% of the test set, so
+            a model that ignored its input entirely and always answered Surgery
+            would score 29.7%. The trained model was fifteen points above that,
+            with four classes at zero recall.
+          </p>
+        </div>
+
+        <div className="section">
+          <p className="label">What was actually wrong</p>
+          <p>
+            Two things. First, the label column mixed document types with
+            specialties — &ldquo;SOAP / Chart / Progress Notes,&rdquo;
+            &ldquo;Discharge Summary,&rdquo; and &ldquo;Consult - History and
+            Phy.&rdquo; are formats, not doctors, and every note in the dataset
+            is written in one of them. Those labels overlap with every real
+            specialty, so no amount of training separates them.
+          </p>
+          <p style={{ marginTop: 14 }}>
+            Second, the text was dictated clinical notes, while real users type
+            things like &ldquo;my knee clicks when I go up stairs.&rdquo; A
+            bag-of-words model has never seen that sentence.
+          </p>
+        </div>
+
+        <div className="section">
+          <p className="label">Ruling out the obvious fix</p>
+          <p>
+            The standard remedy for imbalanced classes is to reweight the loss
+            function. Applying it made accuracy go <em>down</em>, from 44.8% to
+            43.8%. Reweighting fixes a model that ignores small classes. It
+            cannot fix classes that aren&apos;t mutually exclusive. That result
+            is what showed the problem was upstream, in how the labels were
+            defined, rather than in the training procedure.
+          </p>
+        </div>
+
+        <div className="section">
+          <p className="label">Rebuilding around the finding</p>
+          <p>
+            The 40 original labels were curated by hand down to 17
+            patient-facing specialties, dropping document types along with
+            Surgery and Radiology — neither is somewhere a patient books
+            directly. The Gemini API then generated 3,406 symptom descriptions
+            written the way patients write, balanced across all 17 specialties,
+            and the classifier was retrained on those. This is knowledge
+            distillation: using a large model to produce training data for a
+            small one.
+          </p>
+        </div>
+
+        <div className="section">
+          <p className="label">Measuring it honestly</p>
+          <p>
+            Testing synthetic data against synthetic data only proves a model
+            imitates its teacher. So a separate evaluation set was built from
+            real transcripts, rewritten as patient descriptions but keeping the
+            original human-assigned specialty as the answer key — a label no
+            model in the pipeline produced. Twenty-nine cases were then filtered
+            out where diagnoses, medication names, or test results leaked into
+            the rewrite, since those would let a model read the answer rather
+            than infer it.
+          </p>
+        </div>
+
+        <div className="section">
+          <p className="label">Results</p>
+          <div className="results">
+            <div className="results-row results-head">
+              <div>Model</div>
+              <div>Top-1</div>
+              <div>Top-3</div>
+            </div>
+            <div className="results-row">
+              <div>
+                Original baseline
+                <span className="results-note">12 contaminated classes</span>
+              </div>
+              <div>44.8%</div>
+              <div>—</div>
+            </div>
+            <div className="results-row">
+              <div>
+                Distilled model
+                <span className="results-note">synthetic holdout</span>
+              </div>
+              <div>48.9%</div>
+              <div>75.5%</div>
+            </div>
+            <div className="results-row">
+              <div>
+                Distilled model
+                <span className="results-note">transcript-derived eval</span>
+              </div>
+              <div>48.3%</div>
+              <div>69.7%</div>
+            </div>
+            <div className="results-row results-best">
+              <div>
+                Gemini, zero-shot
+                <span className="results-note">same eval set</span>
+              </div>
+              <div>66.6%</div>
+              <div>88.3%</div>
+            </div>
+          </div>
+          <p className="small muted" style={{ marginTop: 12 }}>
+            Chance is 5.9% across 17 classes. The distilled model went from 15
+            points above a majority-class baseline to 42 points above random —
+            but the language model still beat it by 18 points, which is why it
+            does the classifying in the live app.
+          </p>
+        </div>
+
+        <div className="section">
+          <p className="label">Limitations</p>
+          <ul className="tight">
+            <li>
+              The source dataset combines cardiology and pulmonology into one
+              label, so those 17 evaluation cases count as correct if either is
+              predicted. Excluding them entirely, top-1 drops to 45.8%.
+            </li>
+            <li>
+              The evaluation set has 16–20 cases per specialty, so a single
+              example moves a class by about five points. Per-class numbers are
+              directional.
+            </li>
+            <li>
+              Training data is synthetic. Specialties with few real source
+              transcripts — dermatology and endocrinology especially — rest more
+              on the language model&apos;s general knowledge than on the
+              dataset.
+            </li>
+            <li>
+              Hematology/Oncology scored 0% for the distilled model. Cancer
+              symptoms in plain language are nonspecific — a lump, fatigue,
+              weight loss — and patients don&apos;t self-route to oncology
+              anyway. It stays in the label set but is a known weak point.
+            </li>
+            <li>
+              Some descriptions genuinely can&apos;t be routed from one line.
+              &ldquo;Can&apos;t catch my breath&rdquo; was generated as an
+              emergency signal for both pulmonology and psychiatry. That finding
+              is why the app asks follow-up questions instead of guessing.
+            </li>
+          </ul>
+        </div>
+
+        <div className="section">
+          <p className="label">Built with</p>
+          <p>
+            Python, scikit-learn, and pandas for training and evaluation.
+            Next.js, TypeScript, and CSS for the app, deployed on Vercel.
+            Classification at runtime uses the Gemini API, called from a server
+            route so the key never reaches the browser, with every response
+            validated against the specialty list before it renders.
+          </p>
+        </div>
+
+        <div className="btn-row" style={{ marginTop: 36 }}>
+          <button className="btn" onClick={() => setScreen("start")}>
+            Try it
+          </button>
+          <button
+            className="btn btn-secondary"
+            onClick={() => setScreen("landing")}
+          >
+            Back
+          </button>
+        </div>
       </main>
     );
   }
@@ -300,7 +502,7 @@ export default function Page() {
           return (
             <button
               key={name}
-              className="card"
+              className={`card ${i === 0 ? "card-best" : ""}`}
               onClick={() => {
                 setChosen(name);
                 setScreen("detail");
@@ -338,17 +540,17 @@ export default function Page() {
         <p className="label">{spec.name}</p>
         <h1>{spec.plainName}</h1>
 
-        <div style={{ marginTop: 36 }}>
+        <div className="section">
           <p className="label">What they treat</p>
           <p>{spec.treats}</p>
         </div>
 
-        <div style={{ marginTop: 30 }}>
+        <div className="section">
           <p className="label">Why you were pointed here</p>
           <p>{result.reasoning}</p>
         </div>
 
-        <div style={{ marginTop: 30 }}>
+        <div className="section">
           <p className="label">What a first visit involves</p>
           <p>{spec.firstVisit}</p>
         </div>
